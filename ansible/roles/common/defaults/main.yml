@@ -1,0 +1,4 @@
+common_timezone: UTC
+common_deploy_user: deploy
+common_deploy_ssh_pubkey: ""
+common_packages: [curl, ca-certificates, htop, jq, vim, unattended-upgrades]

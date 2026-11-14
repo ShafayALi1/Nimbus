@@ -1,0 +1,27 @@
+- name: Install Docker and Compose from the Ubuntu archive
+  ansible.builtin.apt:
+    name: [docker.io, docker-compose-v2]
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Rotate container logs so they can't fill the disk
+  ansible.builtin.copy:
+    content: "{{ {'log-driver': 'json-file', 'log-opts': {'max-size': docker_log_max_size, 'max-file': '3'}} | to_nice_json }}\n"
+    dest: /etc/docker/daemon.json
+    mode: "0644"
+  notify: Restart docker
+
+- name: Start Docker now and on boot
+  ansible.builtin.service:
+    name: docker
+    state: started
+    enabled: true
+  when: ansible_service_mgr == 'systemd'
+
+- name: Let these users run docker
+  ansible.builtin.user:
+    name: "{{ item }}"
+    groups: [docker]
+    append: true
+  loop: "{{ docker_users }}"

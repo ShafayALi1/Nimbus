@@ -1,0 +1,9 @@
+# Configure every server the same way. Run twice: the second run must report changed=0 (idempotency).
+#   ansible-playbook site.yml            then again:   ansible-playbook site.yml
+- name: Configure Nimbus servers
+  hosts: all
+  become: true
+  roles:
+    - common
+    - docker
+    - node_exporter
