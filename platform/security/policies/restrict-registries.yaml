@@ -1,0 +1,22 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: restrict-image-registries
+  annotations:
+    policies.kyverno.io/description: Only our own registry and a few official images. Audit mode first; switch to Enforce once reports are clean.
+spec:
+  background: true
+  rules:
+    - name: known-registries
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: ["nimbus-*"]
+      validate:
+        failureAction: Audit
+        message: "Images must come from localhost:5001 (our registry) or the approved official images."
+        pattern:
+          spec:
+            containers:
+              - image: "localhost:5001/* | postgres:* | redis:* | curlimages/*"

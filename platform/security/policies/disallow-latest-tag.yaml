@@ -1,0 +1,22 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: disallow-latest-tag
+  annotations:
+    policies.kyverno.io/description: Images must use a fixed tag (the git SHA). 'latest' changes under you and can't be rolled back.
+spec:
+  background: true
+  rules:
+    - name: fixed-tag
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: ["nimbus-*"]
+      validate:
+        failureAction: Enforce
+        message: "Use a fixed image tag such as the git SHA, never ':latest'."
+        pattern:
+          spec:
+            containers:
+              - image: "!*:latest"

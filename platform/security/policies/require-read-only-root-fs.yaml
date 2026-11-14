@@ -1,0 +1,23 @@
+apiVersion: kyverno.io/v1
+kind: ClusterPolicy
+metadata:
+  name: require-read-only-root-fs
+  annotations:
+    policies.kyverno.io/description: The container filesystem is read-only, so an attacker can't drop tools into it. Writable paths are explicit volumes.
+spec:
+  background: true
+  rules:
+    - name: read-only-root
+      match:
+        any:
+          - resources:
+              kinds: [Pod]
+              namespaces: ["nimbus-*"]
+      validate:
+        failureAction: Enforce
+        message: "Set securityContext.readOnlyRootFilesystem: true and mount an emptyDir where the app must write."
+        pattern:
+          spec:
+            containers:
+              - securityContext:
+                  readOnlyRootFilesystem: true
