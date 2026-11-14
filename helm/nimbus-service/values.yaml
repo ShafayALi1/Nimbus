@@ -1,0 +1,64 @@
+# Defaults for one Nimbus service. envs/<env>/<service>.yaml overrides what differs.
+name: ""                      # required: web | orders-api | worker
+image:
+  repository: ""              # e.g. localhost:5001/nimbus/web
+  tag: ""                     # the git SHA; never 'latest' (Kyverno blocks it)
+  pullPolicy: IfNotPresent
+
+replicas: 2
+command: []                   # empty = use the image's CMD
+port: 8000                    # the port that serves /metrics (web/api: 8000, worker: 9100)
+env: []                       # plain list of env vars (valueFrom allowed)
+
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { cpu: 500m, memory: 256Mi }
+
+livenessProbe:                # failing = Kubernetes restarts the container
+  httpGet: { path: /healthz, port: http }
+  periodSeconds: 10
+  failureThreshold: 3
+readinessProbe:               # failing = no traffic is sent to the pod (no restart)
+  httpGet: { path: /healthz, port: http }
+  periodSeconds: 5
+  failureThreshold: 2
+startupProbe:                 # gives slow starts time before liveness kicks in
+  httpGet: { path: /healthz, port: http }
+  periodSeconds: 2
+  failureThreshold: 30
+
+tmpSizeLimit: 64Mi            # writable /tmp (the root filesystem is read-only)
+terminationGracePeriodSeconds: 30
+
+serviceMonitor: { enabled: true, interval: 15s }
+
+ingress:
+  enabled: false
+  host: ""
+  className: traefik
+
+autoscaling:                  # HPA: needs metrics-server
+  enabled: false
+  minReplicas: 2
+  maxReplicas: 6
+  targetCPU: 70
+
+pdb: { enabled: true, minAvailable: 1 }   # voluntary disruptions (node drain) keep at least 1 pod
+
+networkPolicy:
+  enabled: true
+  allowFrom: []               # app names allowed to call this service, e.g. [web]
+  allowIngressController: false
+
+rollout:                      # Argo Rollouts canary instead of a plain Deployment
+  enabled: false
+  steps:
+    - setWeight: 25
+    - pause: { duration: 60s }
+    - setWeight: 50
+    - pause: { duration: 60s }
+  analysis:
+    enabled: true
+    prometheusAddress: http://kube-prometheus-stack-prometheus.monitoring.svc:9090
+    successRate: 0.95         # roll back if more than 5% of requests fail
+    pathRegex: "/orders.*"     # count real user traffic only, not health probes

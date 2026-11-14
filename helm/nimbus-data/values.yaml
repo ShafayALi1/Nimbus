@@ -1,0 +1,23 @@
+passwordSecret: nimbus-db          # created by scripts/up.sh, never stored in Git
+
+postgres:
+  image: postgres:16-alpine
+  storage: 1Gi
+  resources:
+    requests: { cpu: 100m, memory: 128Mi }
+    limits: { cpu: "1", memory: 512Mi }
+
+redis:
+  image: redis:7-alpine
+  storage: 1Gi
+  resources:
+    requests: { cpu: 50m, memory: 32Mi }
+    limits: { cpu: 500m, memory: 256Mi }
+
+backup:
+  enabled: true
+  schedule: "0 2 * * *"            # every day at 02:00
+  keepDays: 7
+  storage: 2Gi
+
+clients: [orders-api, worker]      # the only apps allowed to reach the databases

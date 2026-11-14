@@ -1,0 +1,15 @@
+{{- if .Values.serviceMonitor.enabled }}
+# Tells Prometheus (kube-prometheus-stack) to scrape /metrics from this service's pods.
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ include "nimbus.name" . }}
+  labels: {{- include "nimbus.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "nimbus.selectorLabels" . | nindent 6 }}
+  endpoints:
+    - port: http
+      path: /metrics
+      interval: {{ .Values.serviceMonitor.interval }}
+{{- end }}

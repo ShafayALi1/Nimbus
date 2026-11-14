@@ -1,0 +1,5 @@
+apiVersion: v2
+name: nimbus-data
+description: PostgreSQL + Redis for local clusters, with daily backups. On AWS these become RDS and ElastiCache.
+type: application
+version: 1.0.0

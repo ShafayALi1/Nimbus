@@ -1,0 +1,26 @@
+{{- if .Values.rollout.enabled }}
+# Canary release: a few pods get the new version first. If the error rate rises, Argo Rollouts rolls back by itself.
+apiVersion: argoproj.io/v1alpha1
+kind: Rollout
+metadata:
+  name: {{ include "nimbus.name" . }}
+  labels: {{- include "nimbus.labels" . | nindent 4 }}
+spec:
+  {{- if not .Values.autoscaling.enabled }}
+  replicas: {{ .Values.replicas }}
+  {{- end }}
+  revisionHistoryLimit: 5
+  selector:
+    matchLabels: {{- include "nimbus.selectorLabels" . | nindent 6 }}
+  template:
+    {{- include "nimbus.podTemplate" . | nindent 4 }}
+  strategy:
+    canary:
+      {{- if .Values.rollout.analysis.enabled }}
+      analysis:                       # runs in the background for the whole rollout
+        templates:
+          - templateName: {{ include "nimbus.name" . }}-success-rate
+        startingStep: 1
+      {{- end }}
+      steps: {{- toYaml .Values.rollout.steps | nindent 8 }}
+{{- end }}

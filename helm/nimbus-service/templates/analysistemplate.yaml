@@ -1,0 +1,24 @@
+{{- if and .Values.rollout.enabled .Values.rollout.analysis.enabled }}
+{{- $sel := printf "namespace=%q,service=%q,path=~%q" .Release.Namespace (include "nimbus.name" .) .Values.rollout.analysis.pathRegex }}
+apiVersion: argoproj.io/v1alpha1
+kind: AnalysisTemplate
+metadata:
+  name: {{ include "nimbus.name" . }}-success-rate
+  labels: {{- include "nimbus.labels" . | nindent 4 }}
+spec:
+  metrics:
+    - name: success-rate
+      interval: 30s
+      failureLimit: 2
+      successCondition: result[0] >= {{ .Values.rollout.analysis.successRate }}
+      provider:
+        prometheus:
+          address: {{ .Values.rollout.analysis.prometheusAddress }}
+          # share of non-5xx user requests (health probes excluded) over 2 minutes; "or vector(0)" and clamp_min keep it defined with no traffic
+          query: |
+            1 - (
+              (sum(rate(http_requests_total{ {{- $sel }},status=~"5.."}[2m])) or vector(0))
+              /
+              clamp_min(sum(rate(http_requests_total{ {{- $sel }}}[2m])) or vector(0), 0.001)
+            )
+{{- end }}

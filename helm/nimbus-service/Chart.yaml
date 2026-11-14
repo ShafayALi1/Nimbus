@@ -1,0 +1,5 @@
+apiVersion: v2
+name: nimbus-service
+description: One chart for every Nimbus service (web, orders-api, worker). Each service is just a values file.
+type: application
+version: 1.0.0

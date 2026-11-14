@@ -1,0 +1,26 @@
+{{- if .Values.networkPolicy.enabled }}
+# Only listed callers may connect. Prometheus may always scrape metrics.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "nimbus.name" . }}
+  labels: {{- include "nimbus.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "nimbus.selectorLabels" . | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        {{- range .Values.networkPolicy.allowFrom }}
+        - podSelector:
+            matchLabels: { app.kubernetes.io/name: {{ . }} }
+        {{- end }}
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: monitoring }
+        {{- if .Values.networkPolicy.allowIngressController }}
+        - namespaceSelector:
+            matchLabels: { kubernetes.io/metadata.name: traefik }
+        {{- end }}
+      ports:
+        - port: http
+{{- end }}
