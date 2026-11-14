@@ -16,6 +16,20 @@ configs:
         end
       end
       return hs
+    # kind creates a volume only when a pod first uses it ("WaitForFirstConsumer"), so an unused PVC
+    # (like the backup volume before the first nightly run) stays Pending. Treat that as healthy.
+    resource.customizations.health.PersistentVolumeClaim: |
+      hs = {}
+      if obj.status ~= nil and obj.status.phase == "Lost" then
+        hs.status = "Degraded"
+        hs.message = "Volume lost"
+        return hs
+      end
+      hs.status = "Healthy"
+      if obj.status ~= nil and obj.status.phase == "Pending" then
+        hs.message = "Waiting for first consumer"
+      end
+      return hs
 server:
   ingress:
     enabled: true
