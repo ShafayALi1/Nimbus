@@ -1,0 +1,36 @@
+# Prometheus + Grafana + Alertmanager + node and kube-state metrics.
+prometheus:
+  prometheusSpec:
+    # pick up every ServiceMonitor / PrometheusRule in the cluster, not only ones labelled for this release
+    serviceMonitorSelectorNilUsesHelmValues: false
+    podMonitorSelectorNilUsesHelmValues: false
+    ruleSelectorNilUsesHelmValues: false
+    retention: 3d
+    resources:
+      requests: { cpu: 100m, memory: 400Mi }
+      limits: { memory: 1536Mi }
+
+grafana:
+  admin:
+    existingSecret: grafana-admin     # created by scripts/up.sh with a random password
+    userKey: admin-user
+    passwordKey: admin-password
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hosts: [grafana.localtest.me]
+  additionalDataSources:
+    - name: Loki
+      type: loki
+      uid: loki
+      url: http://loki.logging.svc:3100
+  sidecar:
+    dashboards:
+      enabled: true
+      searchNamespace: ALL            # dashboards = ConfigMaps labelled grafana_dashboard: "1"
+
+# kind runs these control-plane parts in a way Prometheus can't scrape; skip them to avoid false alerts.
+kubeEtcd: { enabled: false }
+kubeControllerManager: { enabled: false }
+kubeScheduler: { enabled: false }
+kubeProxy: { enabled: false }

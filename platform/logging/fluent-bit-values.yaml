@@ -1,0 +1,12 @@
+# Fluent Bit runs on every node, reads all container logs, adds Kubernetes labels and ships them to Loki.
+# The chart's default input (tail /var/log/containers) and kubernetes filter are kept; only the output changes.
+config:
+  outputs: |
+    [OUTPUT]
+        Name        loki
+        Match       kube.*
+        Host        loki.logging.svc
+        Port        3100
+        Labels      job=fluent-bit, namespace=$kubernetes['namespace_name'], app=$kubernetes['labels']['app.kubernetes.io/name'], container=$kubernetes['container_name']
+        Remove_keys kubernetes
+        Line_format json

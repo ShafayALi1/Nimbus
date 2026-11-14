@@ -1,0 +1,210 @@
+# Grafana loads every ConfigMap with the label grafana_dashboard: "1" (sidecar).
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: nimbus-dashboard
+  labels:
+    grafana_dashboard: "1"
+data:
+  nimbus-overview.json: |
+    {
+     "title": "Nimbus overview",
+     "uid": "nimbus-overview",
+     "schemaVersion": 39,
+     "time": {
+      "from": "now-1h",
+      "to": "now"
+     },
+     "refresh": "10s",
+     "templating": {
+      "list": [
+       {
+        "name": "datasource",
+        "type": "datasource",
+        "query": "prometheus",
+        "current": {
+         "text": "Prometheus",
+         "value": "prometheus"
+        }
+       },
+       {
+        "name": "namespace",
+        "type": "query",
+        "datasource": {
+         "type": "prometheus",
+         "uid": "${datasource}"
+        },
+        "query": "label_values(http_requests_total, namespace)",
+        "refresh": 2,
+        "current": {
+         "text": "nimbus-dev",
+         "value": "nimbus-dev"
+        }
+       }
+      ]
+     },
+     "panels": [
+      {
+       "type": "timeseries",
+       "title": "Requests per second (R)",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "reqps"
+        },
+        "overrides": []
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum by (service) (rate(http_requests_total{namespace=\"$namespace\"}[5m]))",
+         "legendFormat": "{{service}}"
+        }
+       ]
+      },
+      {
+       "type": "timeseries",
+       "title": "Error rate (E), health probes excluded",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 0
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "percentunit"
+        },
+        "overrides": []
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum by (service) (rate(http_requests_total{namespace=\"$namespace\",status=~\"5..\",path!~\"/healthz|/readyz|/metrics\"}[5m])) / sum by (service) (rate(http_requests_total{namespace=\"$namespace\",path!~\"/healthz|/readyz|/metrics\"}[5m]))",
+         "legendFormat": "{{service}}"
+        }
+       ]
+      },
+      {
+       "type": "timeseries",
+       "title": "p95 latency (D)",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s"
+        },
+        "overrides": []
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "histogram_quantile(0.95, sum by (service, le) (rate(http_request_duration_seconds_bucket{namespace=\"$namespace\"}[5m])))",
+         "legendFormat": "{{service}}"
+        }
+       ]
+      },
+      {
+       "type": "timeseries",
+       "title": "Queue depth",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 8
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "short"
+        },
+        "overrides": []
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "max(worker_queue_depth{namespace=\"$namespace\"})",
+         "legendFormat": "waiting jobs"
+        }
+       ]
+      },
+      {
+       "type": "timeseries",
+       "title": "Worker jobs per second",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 0,
+        "y": 16
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "ops"
+        },
+        "overrides": []
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "sum by (result) (rate(worker_jobs_total{namespace=\"$namespace\"}[5m]))",
+         "legendFormat": "{{result}}"
+        }
+       ]
+      },
+      {
+       "type": "timeseries",
+       "title": "Job duration p95",
+       "gridPos": {
+        "h": 8,
+        "w": 12,
+        "x": 12,
+        "y": 16
+       },
+       "datasource": {
+        "type": "prometheus",
+        "uid": "${datasource}"
+       },
+       "fieldConfig": {
+        "defaults": {
+         "unit": "s"
+        },
+        "overrides": []
+       },
+       "targets": [
+        {
+         "refId": "A",
+         "expr": "histogram_quantile(0.95, sum by (le) (rate(worker_job_duration_seconds_bucket{namespace=\"$namespace\"}[5m])))",
+         "legendFormat": "p95"
+        }
+       ]
+      }
+     ]
+    }

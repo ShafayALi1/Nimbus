@@ -1,0 +1,54 @@
+# SLO: 99.5% of orders-api user requests (/orders..., not health probes) succeed (error budget 0.5%) over 30 days.
+# Multi-window burn-rate alerts (Google SRE workbook): page only when the budget burns fast, in a long AND a short window.
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: nimbus
+spec:
+  groups:
+    - name: nimbus-slo-recording
+      rules:
+        - record: nimbus:orders_api_error_ratio:rate5m
+          expr: sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*",status=~"5.."}[5m])) / sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*"}[5m]))
+        - record: nimbus:orders_api_error_ratio:rate30m
+          expr: sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*",status=~"5.."}[30m])) / sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*"}[30m]))
+        - record: nimbus:orders_api_error_ratio:rate1h
+          expr: sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*",status=~"5.."}[1h])) / sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*"}[1h]))
+        - record: nimbus:orders_api_error_ratio:rate6h
+          expr: sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*",status=~"5.."}[6h])) / sum by (namespace) (rate(http_requests_total{service="orders-api",path=~"/orders.*"}[6h]))
+    - name: nimbus-alerts
+      rules:
+        - alert: OrdersApiErrorBudgetFastBurn
+          expr: nimbus:orders_api_error_ratio:rate1h > (14.4 * 0.005) and nimbus:orders_api_error_ratio:rate5m > (14.4 * 0.005)
+          for: 2m
+          labels: { severity: critical }
+          annotations:
+            summary: "orders-api is burning its error budget fast in {{ $labels.namespace }} (2% of the month's budget per hour)"
+            runbook_url: https://github.com/CHANGE-ME/nimbus-platform/blob/main/docs/runbooks/orders-api-errors.md
+        - alert: OrdersApiErrorBudgetSlowBurn
+          expr: nimbus:orders_api_error_ratio:rate6h > (6 * 0.005) and nimbus:orders_api_error_ratio:rate30m > (6 * 0.005)
+          for: 15m
+          labels: { severity: warning }
+          annotations:
+            summary: "orders-api errors are steadily eating the error budget in {{ $labels.namespace }}"
+            runbook_url: https://github.com/CHANGE-ME/nimbus-platform/blob/main/docs/runbooks/orders-api-errors.md
+        - alert: WorkerQueueBacklog
+          expr: max by (namespace) (worker_queue_depth) > 100
+          for: 10m
+          labels: { severity: warning }
+          annotations:
+            summary: "More than 100 orders waiting in {{ $labels.namespace }}: workers are too slow or stuck"
+            runbook_url: https://github.com/CHANGE-ME/nimbus-platform/blob/main/docs/runbooks/queue-backlog.md
+        - alert: WorkerNotProcessing
+          expr: (sum by (namespace) (rate(worker_jobs_total{result="processed"}[10m])) == 0) and (max by (namespace) (worker_queue_depth) > 0)
+          for: 10m
+          labels: { severity: critical }
+          annotations:
+            summary: "Jobs are waiting but nothing is processed in {{ $labels.namespace }}"
+            runbook_url: https://github.com/CHANGE-ME/nimbus-platform/blob/main/docs/runbooks/queue-backlog.md
+        - alert: OrdersNotQueued
+          expr: increase(orders_enqueue_failures_total[10m]) > 0
+          labels: { severity: warning }
+          annotations:
+            summary: "orders-api could not reach Redis; orders wait for the reconciler (up to ~1 min delay)"
+            runbook_url: https://github.com/CHANGE-ME/nimbus-platform/blob/main/docs/runbooks/redis-down.md
