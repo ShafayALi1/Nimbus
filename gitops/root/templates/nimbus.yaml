@@ -1,0 +1,23 @@
+{{- range $env := .Values.environments }}
+{{- range $svc := list "data" "web" "orders-api" "worker" }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $svc }}-{{ $env }}
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: {{ if eq $svc "data" }}"0"{{ else }}"1"{{ end }} }
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  destination: { server: https://kubernetes.default.svc, namespace: nimbus-{{ $env }} }
+  source:
+    repoURL: {{ $.Values.repoURL }}
+    targetRevision: {{ $.Values.targetRevision }}
+    path: helm/{{ if eq $svc "data" }}nimbus-data{{ else }}nimbus-service{{ end }}
+    helm:
+      releaseName: {{ $svc }}
+      valueFiles: [../../gitops/envs/{{ $env }}/{{ $svc }}.yaml]
+  {{- include "root.syncPolicy" dict | nindent 2 }}
+{{- end }}
+{{- end }}

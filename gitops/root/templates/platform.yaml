@@ -1,0 +1,46 @@
+{{- range $name, $c := .Values.platform }}
+{{- if $c.enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $name }}
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: {{ $c.wave | quote }} }
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  destination: { server: https://kubernetes.default.svc, namespace: {{ $c.namespace }} }
+  sources:
+    - repoURL: {{ $c.repo }}
+      chart: {{ $c.chart }}
+      targetRevision: {{ $c.version }}
+      helm:
+        releaseName: {{ $name }}
+        valueFiles: [$values/{{ $c.values }}]
+    - repoURL: {{ $.Values.repoURL }}
+      targetRevision: {{ $.Values.targetRevision }}
+      ref: values
+  {{- include "root.syncPolicy" $c | nindent 2 }}
+{{- end }}
+{{- end }}
+{{- range $name, $c := .Values.manifests }}
+{{- if $c.enabled }}
+---
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: {{ $name }}
+  namespace: argocd
+  annotations: { argocd.argoproj.io/sync-wave: {{ $c.wave | quote }} }
+  finalizers: [resources-finalizer.argocd.argoproj.io]
+spec:
+  project: default
+  destination: { server: https://kubernetes.default.svc, namespace: {{ $c.namespace }} }
+  source:
+    repoURL: {{ $.Values.repoURL }}
+    targetRevision: {{ $.Values.targetRevision }}
+    path: {{ $c.path }}
+  {{- include "root.syncPolicy" $c | nindent 2 }}
+{{- end }}
+{{- end }}

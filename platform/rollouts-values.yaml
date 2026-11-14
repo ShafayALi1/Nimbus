@@ -1,0 +1,3 @@
+# Argo Rollouts controller. Watch a rollout:  kubectl argo rollouts get rollout orders-api -n nimbus-dev --watch
+dashboard:
+  enabled: false

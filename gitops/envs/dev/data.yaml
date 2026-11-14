@@ -1,0 +1,3 @@
+# PostgreSQL + Redis for dev
+backup:
+  enabled: true

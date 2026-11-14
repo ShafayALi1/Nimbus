@@ -1,0 +1,3 @@
+# Needed by HPA and 'kubectl top'. kind's kubelets use self-signed certs, hence the flag (lab only).
+args:
+  - --kubelet-insecure-tls

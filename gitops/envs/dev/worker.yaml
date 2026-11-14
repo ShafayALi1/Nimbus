@@ -1,0 +1,26 @@
+# worker in dev: no HTTP API, so health comes from the heartbeat file instead of /healthz.
+name: worker
+image:
+  repository: localhost:5001/nimbus/worker
+  tag: "0.1.0"
+port: 9100
+env:
+  - name: DB_PASSWORD
+    valueFrom: { secretKeyRef: { name: nimbus-db, key: password } }
+  - name: DATABASE_URL            # $(DB_PASSWORD) is filled in by Kubernetes from the variable above
+    value: postgresql://nimbus:$(DB_PASSWORD)@postgres:5432/nimbus
+  - name: REDIS_URL
+    value: redis://redis:6379/0
+resources:
+  requests: { cpu: 50m, memory: 64Mi }
+  limits: { cpu: 500m, memory: 128Mi }
+livenessProbe:
+  httpGet: null                   # replace the default HTTP check
+  exec:
+    command: [python, -c, "import os, time; assert time.time() - os.path.getmtime('/tmp/heartbeat') < 30"]
+  periodSeconds: 10
+  failureThreshold: 3
+readinessProbe: null
+startupProbe: null
+networkPolicy:
+  allowFrom: []                   # nobody calls the worker; only Prometheus scrapes it

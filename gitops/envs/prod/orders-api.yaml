@@ -1,0 +1,26 @@
+# orders-api in prod: promoted from dev by pull request.
+name: orders-api
+image:
+  repository: localhost:5001/nimbus/orders-api
+  tag: "0.1.0"
+env:
+  - name: DB_PASSWORD
+    valueFrom: { secretKeyRef: { name: nimbus-db, key: password } }
+  - name: DATABASE_URL            # $(DB_PASSWORD) is filled in by Kubernetes from the variable above
+    value: postgresql://nimbus:$(DB_PASSWORD)@postgres:5432/nimbus
+  - name: REDIS_URL
+    value: redis://redis:6379/0
+  - name: CHAOS_ERROR_RATE        # chaos experiment 6 (chaos/bad-release.sh) sets this to "0.5" to ship a "bad release"
+    value: "0"
+readinessProbe:                   # ready only when PostgreSQL and Redis answer
+  httpGet: { path: /readyz, port: http }
+  periodSeconds: 5
+  failureThreshold: 2
+networkPolicy:
+  allowFrom: [web]
+rollout:
+  enabled: true
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 8

@@ -1,0 +1,3 @@
+# PostgreSQL + Redis for prod
+backup:
+  enabled: true

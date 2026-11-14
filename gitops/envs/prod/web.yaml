@@ -1,0 +1,17 @@
+# web in prod: promoted from dev by pull request (copy the tag line).
+name: web
+image:
+  repository: localhost:5001/nimbus/web
+  tag: "0.1.0"
+env:
+  - name: ORDERS_API_URL
+    value: http://orders-api:8000
+ingress:
+  enabled: true
+  host: nimbus-prod.localtest.me
+networkPolicy:
+  allowIngressController: true
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 6

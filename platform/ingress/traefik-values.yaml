@@ -1,0 +1,23 @@
+# Traefik is the ingress controller (ingress-nginx was retired in March 2026).
+# It listens on the kind control-plane node's ports 80/443, which kind maps to localhost:8080/8443.
+ingressClass:
+  enabled: true
+  isDefaultClass: true
+ports:
+  web:
+    hostPort: 80
+  websecure:
+    hostPort: 443
+service:
+  type: ClusterIP
+nodeSelector:
+  ingress-ready: "true"
+tolerations:
+  - key: node-role.kubernetes.io/control-plane
+    operator: Exists
+    effect: NoSchedule
+updateStrategy:            # a hostPort can only be used by one pod per node: replace, don't surge
+  type: RollingUpdate
+  rollingUpdate:
+    maxUnavailable: 1
+    maxSurge: 0

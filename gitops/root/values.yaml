@@ -1,0 +1,75 @@
+repoURL: https://github.com/CHANGE-ME/nimbus-platform.git   # scripts/up.sh sets this from your git remote
+targetRevision: main
+environments: [dev]            # [dev, prod] when your laptop has room (about +1.5 GB RAM)
+
+# Helm charts from the internet. Versions are pinned: an upgrade is a Git commit, reviewed like code.
+# wave = install order (lower first). Argo CD waits for each wave to be healthy before the next.
+platform:
+  traefik:
+    enabled: true
+    wave: -3
+    namespace: traefik
+    repo: https://traefik.github.io/charts
+    chart: traefik
+    version: 42.4.0
+    values: platform/ingress/traefik-values.yaml
+  metrics-server:
+    enabled: true
+    wave: -3
+    namespace: kube-system
+    repo: https://kubernetes-sigs.github.io/metrics-server/
+    chart: metrics-server
+    version: 3.14.0
+    values: platform/metrics-server-values.yaml
+  kyverno:
+    enabled: true
+    wave: -2
+    namespace: kyverno
+    repo: https://kyverno.github.io/kyverno/
+    chart: kyverno
+    version: 3.8.2
+    values: platform/security/kyverno-values.yaml
+    serverSideApply: true
+  argo-rollouts:
+    enabled: true
+    wave: -2
+    namespace: argo-rollouts
+    repo: https://argoproj.github.io/argo-helm
+    chart: argo-rollouts
+    version: 2.43.12
+    values: platform/rollouts-values.yaml
+  kube-prometheus-stack:
+    enabled: true
+    wave: -2
+    namespace: monitoring
+    repo: https://prometheus-community.github.io/helm-charts
+    chart: kube-prometheus-stack
+    version: 93.3.0
+    values: platform/monitoring/kube-prometheus-stack-values.yaml
+    serverSideApply: true
+  fluent-bit:
+    enabled: true
+    wave: -1
+    namespace: logging
+    repo: https://fluent.github.io/helm-charts
+    chart: fluent-bit
+    version: 0.58.3
+    values: platform/logging/fluent-bit-values.yaml
+
+# Plain YAML folders in this repo
+manifests:
+  loki:
+    enabled: true
+    wave: -2
+    namespace: logging
+    path: platform/logging/loki
+  policies:
+    enabled: true
+    wave: -1
+    namespace: kyverno
+    path: platform/security/policies
+  monitoring-extras:
+    enabled: true
+    wave: -1
+    namespace: monitoring
+    path: platform/monitoring/extras

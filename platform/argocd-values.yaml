@@ -1,0 +1,27 @@
+# Argo CD itself (installed once by scripts/up.sh with Helm; everything else is installed BY Argo CD).
+configs:
+  params:
+    server.insecure: true            # TLS ends at the ingress; fine for a laptop
+  cm:
+    timeout.reconciliation: 60s      # check Git every minute
+    # Make sync waves wait for child apps to be Healthy (Argo CD doesn't by default since v1.8)
+    resource.customizations.health.argoproj.io_Application: |
+      hs = {}
+      hs.status = "Progressing"
+      hs.message = ""
+      if obj.status ~= nil and obj.status.health ~= nil then
+        hs.status = obj.status.health.status
+        if obj.status.health.message ~= nil then
+          hs.message = obj.status.health.message
+        end
+      end
+      return hs
+server:
+  ingress:
+    enabled: true
+    ingressClassName: traefik
+    hostname: argocd.localtest.me
+dex:
+  enabled: false
+notifications:
+  enabled: false

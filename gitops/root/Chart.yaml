@@ -1,0 +1,5 @@
+apiVersion: v2
+name: nimbus-root
+description: App of apps. One Argo CD Application that creates all the others (platform + Nimbus per environment).
+type: application
+version: 1.0.0
