@@ -1,0 +1,14 @@
+# Local Jenkins:  cp .env.example .env  (fill it in)  then  docker compose up -d --build
+# Open http://localhost:8090 (user admin). The nimbus-app job checks GitHub every 2 minutes.
+services:
+  jenkins:
+    build: .
+    restart: unless-stopped
+    user: root   # needed to use the Docker socket on Docker Desktop. Lab trade-off: the socket is root-equivalent.
+    env_file: .env
+    ports: ["8090:8080"]   # 8080 is used by the kind cluster ingress
+    volumes:
+      - jenkins_home:/var/jenkins_home
+      - /var/run/docker.sock:/var/run/docker.sock
+volumes:
+  jenkins_home:
