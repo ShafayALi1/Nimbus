@@ -1,0 +1,11 @@
+# Free AWS emulator for practising Terraform. Pinned to 4.14, the last LocalStack image that runs without an
+# account or token (from March 2026 newer images need a free LocalStack account + LOCALSTACK_AUTH_TOKEN).
+# Free fallback: hectorvent/floci (MIT, same port 4566). See docs/adr/0003-terraform-on-localstack.md
+services:
+  localstack:
+    image: localstack/localstack:4.14
+    ports: ["4566:4566"]
+    environment:
+      SERVICES: s3,dynamodb,ec2,iam,sts,secretsmanager
+      PERSISTENCE: "0"
+    volumes: ["/var/run/docker.sock:/var/run/docker.sock"]
