@@ -32,9 +32,9 @@ bash scripts/up.sh        # registry + kind cluster + images + Argo CD; Argo CD 
 
 | URL | What |
 |---|---|
-| http://nimbus.localtest.me:8080 | the app |
-| http://argocd.localtest.me:8080 | Argo CD: every app, its Git state, sync and health |
-| http://grafana.localtest.me:8080 | dashboards ("Nimbus overview") and logs (Explore → Loki) |
+| http://nimbus.localtest.me:8088 | the app |
+| http://argocd.localtest.me:8088 | Argo CD: every app, its Git state, sync and health |
+| http://grafana.localtest.me:8088 | dashboards ("Nimbus overview") and logs (Explore → Loki) |
 
 `up.sh` prints the passwords at the end. `bash scripts/down.sh` deletes the cluster; `up.sh` rebuilds it from Git in about 10 minutes.
 That's the "destroy and rebuild from code in under an hour" goal.

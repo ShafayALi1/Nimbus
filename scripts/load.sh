@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Send orders through the real path (ingress -> web -> orders-api -> queue -> worker) and count outcomes.
-#   bash scripts/load.sh [seconds] [url]        default: 120 s against http://nimbus.localtest.me:8080
+#   bash scripts/load.sh [seconds] [url]        default: 120 s against http://nimbus.localtest.me:8088
 set -uo pipefail
-SECONDS_TO_RUN=${1:-120}; URL=${2:-http://nimbus.localtest.me:8080}
+SECONDS_TO_RUN=${1:-120}; URL=${2:-http://nimbus.localtest.me:8088}
 ok=0; failed=0; end=$(( $(date +%s) + SECONDS_TO_RUN ))
 while [ "$(date +%s)" -lt "$end" ]; do
   loc=$(curl -s -o /dev/null -m 5 -w '%{redirect_url}' -X POST -d "item=load-test&quantity=1" "$URL/order")

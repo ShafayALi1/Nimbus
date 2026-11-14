@@ -19,7 +19,7 @@ done
 
 # Argo CD reads this repo from GitHub. Use your remote, as https.
 REPO_URL=${REPO_URL:-$(git remote get-url origin 2>/dev/null || true)}
-REPO_URL=$(echo "$REPO_URL" | sed -E 's#^git@github.com:#https://github.com/#')
+REPO_URL=$(echo "$REPO_URL" | sed -E 's#^git@github.com:#https://github.com/#; s#^https://[^@/]+@#https://#')   # drop any user@ part
 [ -n "$REPO_URL" ] || { echo "Push nimbus-platform to GitHub first (git remote add origin ...), or set REPO_URL"; exit 1; }
 
 step "Local image registry on localhost:$REG_PORT"
@@ -67,10 +67,14 @@ kubectl -n monitoring get secret grafana-admin >/dev/null 2>&1 ||
     --from-literal=admin-user=admin --from-literal=admin-password="$(openssl rand -hex 12)"
 
 step "Argo CD"
-helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
-helm repo update argo >/dev/null
-helm upgrade --install argocd argo/argo-cd --version $ARGOCD_CHART_VERSION \
-  -n argocd --create-namespace -f platform/argocd-values.yaml --wait --timeout 10m
+if helm -n argocd status argocd >/dev/null 2>&1; then
+  echo "already installed"
+else
+  helm repo add argo https://argoproj.github.io/argo-helm >/dev/null 2>&1 || true
+  helm repo update argo || echo "chart index update failed; using the cached copy"
+  helm upgrade --install argocd argo/argo-cd --version $ARGOCD_CHART_VERSION \
+    -n argocd --create-namespace -f platform/argocd-values.yaml --wait --timeout 10m
+fi
 
 step "Root application: Argo CD now installs everything else from Git ($REPO_URL)"
 envs_yaml=$(printf '"%s",' $ENVIRONMENTS); envs_yaml="[${envs_yaml%,}]"
@@ -109,9 +113,9 @@ echo; kubectl -n argocd get applications
 cat <<EOF
 
 Nimbus is up.
-  App:      http://nimbus.localtest.me:8080
-  Argo CD:  http://argocd.localtest.me:8080   user admin, password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
-  Grafana:  http://grafana.localtest.me:8080  user admin, password: $(kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.admin-password}' | base64 -d)
+  App:      http://nimbus.localtest.me:8088
+  Argo CD:  http://argocd.localtest.me:8088   user admin, password: $(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)
+  Grafana:  http://grafana.localtest.me:8088  user admin, password: $(kubectl -n monitoring get secret grafana-admin -o jsonpath='{.data.admin-password}' | base64 -d)
   Prometheus: kubectl -n monitoring port-forward svc/kube-prometheus-stack-prometheus 9090
   Canary:   kubectl argo rollouts get rollout orders-api -n nimbus-dev --watch
 Stop everything: bash scripts/down.sh   (start again: bash scripts/up.sh)

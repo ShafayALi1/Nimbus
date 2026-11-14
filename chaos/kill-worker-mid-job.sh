@@ -2,7 +2,7 @@
 # Experiment 2: queue 50 orders, kill every worker at once (no grace period). Expect: all 50 processed anyway.
 set -euo pipefail
 NS=${NS:-nimbus-dev}
-for i in $(seq 1 50); do curl -s -o /dev/null -X POST -d "item=chaos-$i&quantity=1" http://nimbus.localtest.me:8080/order; done
+for i in $(seq 1 50); do curl -s -o /dev/null -X POST -d "item=chaos-$i&quantity=1" http://nimbus.localtest.me:8088/order; done
 echo "50 orders queued; killing all workers with no grace period"
 kubectl -n $NS delete pods -l app.kubernetes.io/name=worker --grace-period=0 --force
 echo "Now watch: pending should drop to 0 within ~2 minutes (reconciler re-queues lost jobs)"

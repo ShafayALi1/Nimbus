@@ -1,5 +1,5 @@
 # Traefik is the ingress controller (ingress-nginx was retired in March 2026).
-# It listens on the kind control-plane node's ports 80/443, which kind maps to localhost:8080/8443.
+# It listens on the kind control-plane node's ports 80/443, which kind maps to localhost:8088/8448.
 ingressClass:
   enabled: true
   isDefaultClass: true
@@ -9,7 +9,8 @@ ports:
   websecure:
     hostPort: 443
 service:
-  type: ClusterIP
+  spec:
+    type: ClusterIP       # no cloud load balancer on kind; traffic arrives through the hostPort
 nodeSelector:
   ingress-ready: "true"
 tolerations:
